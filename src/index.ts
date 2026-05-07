@@ -17,7 +17,7 @@ import { apiKeysCommand } from './commands/api-keys.js';
 const program = new Command()
   .name('nuntly')
   .description(pc.bold('Nuntly CLI') + ' - Developer-first email platform')
-  .version('0.0.1')
+  .version(CLI_VERSION)
   .option('--profile <name>', 'Use a specific profile from ~/.nuntly/config.json');
 
 import { login, listProfiles } from './auth.js';

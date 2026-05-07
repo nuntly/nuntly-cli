@@ -1,4 +1,4 @@
-// Auto-generated. Do not edit manually.
-// Source of truth: package.json (version field).
+// Auto-generated. DO NOT EDIT.
+// Source of truth: package.json version.
 
-export const CLI_VERSION = '0.0.1';
+export const CLI_VERSION = '1.0.0-alpha.3';
