@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  HOMEBREW_TAP_REPO: nuntly/homebrew-tap
+
+jobs:
+  release:
+    name: Build, publish, and release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify tag matches package.json
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+          echo "VERSION=$TAG_VERSION" >> "$GITHUB_ENV"
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run typecheck
+
+      - run: bun run build
+
+      - name: Cross-compile binaries (darwin/linux x64+arm64, windows x64)
+        run: bun run compile:all
+
+      - name: Compute SHA-256 checksums
+        working-directory: dist
+        run: |
+          for f in nuntly-darwin-arm64 nuntly-darwin-x64 nuntly-linux-arm64 nuntly-linux-x64 nuntly-windows-x64.exe; do
+            sha256sum "$f" | awk '{print $1}' > "$f.sha256"
+          done
+          ls -la
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "v$VERSION" \
+            --generate-notes \
+            dist/nuntly-darwin-arm64 \
+            dist/nuntly-darwin-arm64.sha256 \
+            dist/nuntly-darwin-x64 \
+            dist/nuntly-darwin-x64.sha256 \
+            dist/nuntly-linux-arm64 \
+            dist/nuntly-linux-arm64.sha256 \
+            dist/nuntly-linux-x64 \
+            dist/nuntly-linux-x64.sha256 \
+            dist/nuntly-windows-x64.exe \
+            dist/nuntly-windows-x64.exe.sha256
+
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+
+      - name: Bump Homebrew formula
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          DARWIN_ARM64_SHA=$(cat dist/nuntly-darwin-arm64.sha256)
+          DARWIN_X64_SHA=$(cat dist/nuntly-darwin-x64.sha256)
+          LINUX_ARM64_SHA=$(cat dist/nuntly-linux-arm64.sha256)
+          LINUX_X64_SHA=$(cat dist/nuntly-linux-x64.sha256)
+
+          TAP_DIR=$(mktemp -d)
+          gh repo clone "$HOMEBREW_TAP_REPO" "$TAP_DIR"
+          cd "$TAP_DIR"
+
+          BRANCH="bump-nuntly-$VERSION"
+          git checkout -b "$BRANCH"
+          git config user.email "release-bot@nuntly.com"
+          git config user.name "nuntly-release-bot"
+
+          ./scripts/update-formula.sh "$VERSION" \
+            "$DARWIN_ARM64_SHA" \
+            "$DARWIN_X64_SHA" \
+            "$LINUX_ARM64_SHA" \
+            "$LINUX_X64_SHA"
+
+          git add Formula/nuntly.rb
+          git commit -m "chore(formula): bump nuntly to $VERSION"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "chore(formula): bump nuntly to $VERSION" \
+            --body "Automated bump from nuntly-cli release v$VERSION." \
+            --base main \
+            --head "$BRANCH"
