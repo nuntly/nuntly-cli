@@ -223,7 +223,7 @@ The CLI version tracks the underlying Nuntly SDK version closely.
 
 ## Contributing
 
-Issues, bug reports, and feature requests are welcome at [github.com/nuntly/nuntly-cli/issues](https://github.com/nuntly/nuntly-cli/issues). Command surfaces are generated from the Nuntly OpenAPI spec, so direct PRs that modify them will likely be redirected to upstream feedback. Documentation, examples, and developer-experience improvements are the highest-impact contribution areas.
+Issues, bug reports, and feature requests are welcome at [github.com/nuntly/nuntly-cli/issues](https://github.com/nuntly/nuntly-cli/issues).
 
 ## License
 
