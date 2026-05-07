@@ -80,7 +80,15 @@ jobs:
             dist/nuntly-windows-x64.exe.sha256
 
       - name: Publish to npm with provenance
-        run: npm publish --provenance --access public
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          case "$PKG_VERSION" in
+            *-alpha*) TAG=alpha ;;
+            *-beta*)  TAG=beta ;;
+            *-rc*)    TAG=rc ;;
+            *)        TAG=latest ;;
+          esac
+          npm publish --provenance --access public --tag "$TAG"
 
       - name: Bump Homebrew formula
         env:
