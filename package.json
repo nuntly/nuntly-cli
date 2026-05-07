@@ -1,0 +1,44 @@
+{
+  "name": "@nuntly/cli",
+  "version": "1.0.0-alpha.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "nuntly": "./bin/nuntly.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nuntly/nuntly-cli.git"
+  },
+  "homepage": "https://nuntly.com",
+  "bugs": {
+    "url": "https://github.com/nuntly/nuntly-cli/issues"
+  },
+  "scripts": {
+    "clean": "rimraf dist .tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "compile": "bun build src/index.ts --compile --outfile dist/nuntly",
+    "compile:all": "bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/nuntly-darwin-arm64 && bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/nuntly-darwin-x64 && bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/nuntly-linux-x64 && bun build src/index.ts --compile --target=bun-linux-arm64 --outfile dist/nuntly-linux-arm64 && bun build src/index.ts --compile --target=bun-windows-x64 --outfile dist/nuntly-windows-x64.exe",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@nuntly/sdk": "^1.0.0-alpha.1",
+    "@clack/prompts": "^0.10.0",
+    "@commander-js/extra-typings": "^13.1.0",
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "~24.10.9",
+    "rimraf": "~6.1.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.8.0"
+  }
+}
