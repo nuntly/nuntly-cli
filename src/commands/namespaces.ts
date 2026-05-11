@@ -61,6 +61,27 @@ namespacesCommand
   });
 
 namespacesCommand
+  .command('delete')
+  .description('Soft-delete a namespace. Rejects if it has active inboxes.')
+  .argument('<namespace-id>', 'The namespaceId')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly namespaces delete ns_2345uvwx')
+  .action(async (namespaceId, opts) => {
+    try {
+      if (!await confirmDelete('namespaces', namespaceId)) return;
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const result = await withSpinner('Deleting...', () => nuntly.namespaces.delete(namespaceId));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+namespacesCommand
   .command('list')
   .description('List all namespaces.')
   .option('--cursor <cursor>', 'Pagination cursor')
@@ -122,27 +143,6 @@ namespacesCommand
         externalId: opts.externalId
       };
       const result = await withSpinner('Updating...', () => nuntly.namespaces.update(namespaceId, body as UpdateNamespaceRequest));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-namespacesCommand
-  .command('delete')
-  .description('Soft-delete a namespace. Rejects if it has active inboxes.')
-  .argument('<namespace-id>', 'The namespaceId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly namespaces delete ns_2345uvwx')
-  .action(async (namespaceId, opts) => {
-    try {
-      if (!await confirmDelete('namespaces', namespaceId)) return;
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Deleting...', () => nuntly.namespaces.delete(namespaceId));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);

@@ -74,6 +74,38 @@ nuntly agents memory upsert ag_6789yzab --memory "value"
 
 ### api-keys
 
+#### `nuntly api-keys create`
+
+Generate a new API key. The key value is only returned once — store it securely.
+
+Required: `--permission`
+
+Optional: `--name`, `--status`, `--domain-ids`
+
+```bash
+nuntly api-keys create --permission sendingAccess
+```
+
+#### `nuntly api-keys delete`
+
+Revoke an API key. Requests authenticating with this key will be rejected immediately.
+
+Arguments: `<id>`
+
+```bash
+nuntly api-keys delete id_example
+```
+
+#### `nuntly api-keys list`
+
+Returns all API keys for the organization. Key values are never included in list responses.
+
+Pagination: `--cursor`, `--limit`
+
+```bash
+nuntly api-keys list
+```
+
 #### `nuntly api-keys retrieve`
 
 Returns API key metadata. The key value is never returned after creation.
@@ -98,39 +130,29 @@ Optional: `--name`, `--status`, `--domain-ids`
 nuntly api-keys update id_example --permission sendingAccess
 ```
 
-#### `nuntly api-keys delete`
+### domains
 
-Revoke an API key. Requests authenticating with this key will be rejected immediately.
+#### `nuntly domains create`
+
+Add a domain to start configuring DNS records for sending or receiving emails.
+
+Required: `--name`
+
+Optional: `--sending`, `--receiving`
+
+```bash
+nuntly domains create --name my-resource
+```
+
+#### `nuntly domains delete`
+
+Permanently deletes a domain along with its inboxes, received messages, attachments, and sending configuration. This action is irreversible.
 
 Arguments: `<id>`
 
 ```bash
-nuntly api-keys delete id_example
+nuntly domains delete dm_5678efgh
 ```
-
-#### `nuntly api-keys create`
-
-Generate a new API key. The key value is only returned once — store it securely.
-
-Required: `--permission`
-
-Optional: `--name`, `--status`, `--domain-ids`
-
-```bash
-nuntly api-keys create --permission sendingAccess
-```
-
-#### `nuntly api-keys list`
-
-Returns all API keys for the organization. Key values are never included in list responses.
-
-Pagination: `--cursor`, `--limit`
-
-```bash
-nuntly api-keys list
-```
-
-### domains
 
 #### `nuntly domains list`
 
@@ -152,28 +174,6 @@ Arguments: `<id>`
 nuntly domains retrieve dm_5678efgh
 ```
 
-#### `nuntly domains delete`
-
-Permanently deletes a domain along with its inboxes, received messages, attachments, and sending configuration. This action is irreversible.
-
-Arguments: `<id>`
-
-```bash
-nuntly domains delete dm_5678efgh
-```
-
-#### `nuntly domains create`
-
-Add a domain to start configuring DNS records for sending or receiving emails.
-
-Required: `--name`
-
-Optional: `--sending`, `--receiving`
-
-```bash
-nuntly domains create --name my-resource
-```
-
 #### `nuntly domains update`
 
 Toggle sending, receiving, open tracking, or click tracking capabilities for a domain.
@@ -188,32 +188,14 @@ nuntly domains update dm_5678efgh
 
 ### emails
 
-#### `nuntly emails stats retrieve`
+#### `nuntly emails bulk list`
 
-Returns aggregated daily sending statistics for the current period.
+Returns the delivery status of all emails submitted in a bulk request.
 
-```bash
-nuntly emails stats retrieve
-```
-
-#### `nuntly emails events list`
-
-Returns the full delivery event history for an email (sent, delivered, opened, bounced, etc.).
-
-Arguments: `<id>`
+Arguments: `<bulk-id>`
 
 ```bash
-nuntly emails events list em_1234abcd
-```
-
-#### `nuntly emails content retrieve`
-
-Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a sent email.
-
-Arguments: `<id>`
-
-```bash
-nuntly emails content retrieve em_1234abcd
+nuntly emails bulk list em_1234abcd
 ```
 
 #### `nuntly emails bulk send`
@@ -228,24 +210,42 @@ Optional: `--fallback`
 nuntly emails bulk send --emails "value"
 ```
 
-#### `nuntly emails bulk list`
+#### `nuntly emails content retrieve`
 
-Returns the delivery status of all emails submitted in a bulk request.
-
-Arguments: `<bulk-id>`
-
-```bash
-nuntly emails bulk list em_1234abcd
-```
-
-#### `nuntly emails retrieve`
-
-Returns an email with its current delivery status and metadata.
+Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a sent email.
 
 Arguments: `<id>`
 
 ```bash
-nuntly emails retrieve em_1234abcd
+nuntly emails content retrieve em_1234abcd
+```
+
+#### `nuntly emails events list`
+
+Returns the full delivery event history for an email (sent, delivered, opened, bounced, etc.).
+
+Arguments: `<id>`
+
+```bash
+nuntly emails events list em_1234abcd
+```
+
+#### `nuntly emails stats retrieve`
+
+Returns aggregated daily sending statistics for the current period.
+
+```bash
+nuntly emails stats retrieve
+```
+
+#### `nuntly emails cancel`
+
+Cancel a scheduled email before delivery. Only emails with `scheduled` status can be cancelled.
+
+Arguments: `<id>`
+
+```bash
+nuntly emails cancel em_1234abcd
 ```
 
 #### `nuntly emails list`
@@ -258,6 +258,16 @@ Pagination: `--cursor`, `--limit`
 nuntly emails list
 ```
 
+#### `nuntly emails retrieve`
+
+Returns an email with its current delivery status and metadata.
+
+Arguments: `<id>`
+
+```bash
+nuntly emails retrieve em_1234abcd
+```
+
 #### `nuntly emails send`
 
 Send transactional emails through Nuntly platform. It supports HTML and plain-text emails, attachments, labels, custom headers and scheduling.
@@ -268,16 +278,6 @@ Optional: `--cc`, `--bcc`, `--reply-to`, `--text`, `--html`, `--headers`, `--tag
 
 ```bash
 nuntly emails send --from hello@acme.com --to user@example.com --subject "Welcome aboard"
-```
-
-#### `nuntly emails cancel`
-
-Cancel a scheduled email before delivery. Only emails with `scheduled` status can be cancelled.
-
-Arguments: `<id>`
-
-```bash
-nuntly emails cancel em_1234abcd
 ```
 
 ### inboxes
@@ -320,6 +320,16 @@ Optional: `--domain-id`, `--name`, `--namespace-id`, `--agent-id`
 nuntly inboxes create --address support
 ```
 
+#### `nuntly inboxes delete`
+
+Soft-delete an inbox.
+
+Arguments: `<inbox-id>`
+
+```bash
+nuntly inboxes delete ib_7890qrst
+```
+
 #### `nuntly inboxes list`
 
 List all inboxes.
@@ -352,27 +362,7 @@ Optional: `--name`
 nuntly inboxes update ib_7890qrst
 ```
 
-#### `nuntly inboxes delete`
-
-Soft-delete an inbox.
-
-Arguments: `<inbox-id>`
-
-```bash
-nuntly inboxes delete ib_7890qrst
-```
-
 ### messages
-
-#### `nuntly messages content retrieve`
-
-Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.
-
-Arguments: `<message-id>`
-
-```bash
-nuntly messages content retrieve mg_4567ghij
-```
 
 #### `nuntly messages attachments list`
 
@@ -394,6 +384,30 @@ Arguments: `<message-id>`, `<attachment-id>`
 nuntly messages attachments retrieve mg_4567ghij mg_4567ghij
 ```
 
+#### `nuntly messages content retrieve`
+
+Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.
+
+Arguments: `<message-id>`
+
+```bash
+nuntly messages content retrieve mg_4567ghij
+```
+
+#### `nuntly messages forward`
+
+Forward a message to new recipients.
+
+Arguments: `<message-id>`
+
+Required: `--to`
+
+Optional: `--text`
+
+```bash
+nuntly messages forward mg_4567ghij --to user@example.com
+```
+
 #### `nuntly messages list`
 
 List all received messages across inboxes.
@@ -402,6 +416,20 @@ Pagination: `--cursor`, `--limit`
 
 ```bash
 nuntly messages list
+```
+
+#### `nuntly messages reply`
+
+Reply to a message. Set replyAll to true to reply to all recipients.
+
+Arguments: `<message-id>`
+
+Required: `--reply-all`
+
+Optional: `--text`, `--html`
+
+```bash
+nuntly messages reply mg_4567ghij --reply-all
 ```
 
 #### `nuntly messages retrieve`
@@ -424,34 +452,6 @@ Optional: `--add-labels`, `--remove-labels`
 
 ```bash
 nuntly messages update mg_4567ghij
-```
-
-#### `nuntly messages reply`
-
-Reply to a message. Set replyAll to true to reply to all recipients.
-
-Arguments: `<message-id>`
-
-Required: `--reply-all`
-
-Optional: `--text`, `--html`
-
-```bash
-nuntly messages reply mg_4567ghij --reply-all
-```
-
-#### `nuntly messages forward`
-
-Forward a message to new recipients.
-
-Arguments: `<message-id>`
-
-Required: `--to`
-
-Optional: `--text`
-
-```bash
-nuntly messages forward mg_4567ghij --to user@example.com
 ```
 
 ### namespaces
@@ -478,6 +478,16 @@ Optional: `--external-id`
 
 ```bash
 nuntly namespaces create --name my-resource
+```
+
+#### `nuntly namespaces delete`
+
+Soft-delete a namespace. Rejects if it has active inboxes.
+
+Arguments: `<namespace-id>`
+
+```bash
+nuntly namespaces delete ns_2345uvwx
 ```
 
 #### `nuntly namespaces list`
@@ -512,16 +522,6 @@ Optional: `--name`, `--external-id`
 nuntly namespaces update ns_2345uvwx
 ```
 
-#### `nuntly namespaces delete`
-
-Soft-delete a namespace. Rejects if it has active inboxes.
-
-Arguments: `<namespace-id>`
-
-```bash
-nuntly namespaces delete ns_2345uvwx
-```
-
 ### organizations
 
 #### `nuntly organizations usage retrieve`
@@ -534,16 +534,6 @@ Arguments: `<id>`
 nuntly organizations usage retrieve org_8901klmn
 ```
 
-#### `nuntly organizations list`
-
-Returns all organizations the authenticated user belongs to.
-
-Pagination: `--cursor`, `--limit`
-
-```bash
-nuntly organizations list
-```
-
 #### `nuntly organizations retrieve`
 
 Returns the organization's profile, plan, region, and account status.
@@ -552,6 +542,16 @@ Arguments: `<id>`
 
 ```bash
 nuntly organizations retrieve org_8901klmn
+```
+
+#### `nuntly organizations list`
+
+Returns all organizations the authenticated user belongs to.
+
+Pagination: `--cursor`, `--limit`
+
+```bash
+nuntly organizations list
 ```
 
 ### threads
@@ -592,6 +592,16 @@ nuntly threads update th_0123cdef
 
 ### webhooks
 
+#### `nuntly webhooks events deliveries`
+
+Returns all delivery attempts for a webhook event, including HTTP status codes and response times.
+
+Arguments: `<id>`, `<event-id>`
+
+```bash
+nuntly webhooks events deliveries wh_9012ijkl wh_9012ijkl
+```
+
 #### `nuntly webhooks events list`
 
 Returns recent webhook events across all registered endpoints.
@@ -612,14 +622,36 @@ Arguments: `<id>`, `<event-id>`
 nuntly webhooks events replay wh_9012ijkl wh_9012ijkl
 ```
 
-#### `nuntly webhooks events deliveries`
+#### `nuntly webhooks create`
 
-Returns all delivery attempts for a webhook event, including HTTP status codes and response times.
+Register an endpoint to start receiving webhook events for your organization.
 
-Arguments: `<id>`, `<event-id>`
+Required: `--endpoint-url`, `--events`
+
+Optional: `--name`, `--status`
 
 ```bash
-nuntly webhooks events deliveries wh_9012ijkl wh_9012ijkl
+nuntly webhooks create --endpoint-url https://acme.com/webhooks --events email.sent,email.delivered
+```
+
+#### `nuntly webhooks delete`
+
+Remove a webhook endpoint. No further events will be delivered to this URL.
+
+Arguments: `<id>`
+
+```bash
+nuntly webhooks delete wh_9012ijkl
+```
+
+#### `nuntly webhooks list`
+
+Returns all registered webhook endpoints for the organization.
+
+Pagination: `--cursor`, `--limit`
+
+```bash
+nuntly webhooks list
 ```
 
 #### `nuntly webhooks retrieve`
@@ -642,36 +674,4 @@ Optional: `--name`, `--endpoint-url`, `--events`, `--status`, `--rotate-secret`
 
 ```bash
 nuntly webhooks update wh_9012ijkl
-```
-
-#### `nuntly webhooks delete`
-
-Remove a webhook endpoint. No further events will be delivered to this URL.
-
-Arguments: `<id>`
-
-```bash
-nuntly webhooks delete wh_9012ijkl
-```
-
-#### `nuntly webhooks create`
-
-Register an endpoint to start receiving webhook events for your organization.
-
-Required: `--endpoint-url`, `--events`
-
-Optional: `--name`, `--status`
-
-```bash
-nuntly webhooks create --endpoint-url https://acme.com/webhooks --events email.sent,email.delivered
-```
-
-#### `nuntly webhooks list`
-
-Returns all registered webhook endpoints for the organization.
-
-Pagination: `--cursor`, `--limit`
-
-```bash
-nuntly webhooks list
 ```

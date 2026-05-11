@@ -3,16 +3,16 @@ import { Command } from '@commander-js/extra-typings';
 import pc from 'picocolors';
 import { CLI_VERSION } from './version.js';
 
-import { emailsCommand } from './commands/emails.js';
-import { domainsCommand } from './commands/domains.js';
-import { webhooksCommand } from './commands/webhooks.js';
-import { organizationsCommand } from './commands/organizations.js';
-import { inboxesCommand } from './commands/inboxes.js';
 import { agentsCommand } from './commands/agents.js';
-import { threadsCommand } from './commands/threads.js';
+import { apiKeysCommand } from './commands/api-keys.js';
+import { domainsCommand } from './commands/domains.js';
+import { emailsCommand } from './commands/emails.js';
+import { inboxesCommand } from './commands/inboxes.js';
 import { messagesCommand } from './commands/messages.js';
 import { namespacesCommand } from './commands/namespaces.js';
-import { apiKeysCommand } from './commands/api-keys.js';
+import { organizationsCommand } from './commands/organizations.js';
+import { threadsCommand } from './commands/threads.js';
+import { webhooksCommand } from './commands/webhooks.js';
 
 const program = new Command()
   .name('nuntly')
@@ -52,15 +52,15 @@ program
     }
   });
 
-program.addCommand(emailsCommand);
-program.addCommand(domainsCommand);
-program.addCommand(webhooksCommand);
-program.addCommand(organizationsCommand);
-program.addCommand(inboxesCommand);
 program.addCommand(agentsCommand);
-program.addCommand(threadsCommand);
+program.addCommand(apiKeysCommand);
+program.addCommand(domainsCommand);
+program.addCommand(emailsCommand);
+program.addCommand(inboxesCommand);
 program.addCommand(messagesCommand);
 program.addCommand(namespacesCommand);
-program.addCommand(apiKeysCommand);
+program.addCommand(organizationsCommand);
+program.addCommand(threadsCommand);
+program.addCommand(webhooksCommand);
 
 program.parse();

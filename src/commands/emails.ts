@@ -9,45 +9,49 @@ import { readInput } from '../files.js';
 export const emailsCommand = new Command('emails')
   .description('Emails resource.');
 
-const statsSub = new Command('stats');
-emailsCommand.addCommand(statsSub);
+const bulkSub = new Command('bulk');
+emailsCommand.addCommand(bulkSub);
 
-statsSub
-  .command('retrieve')
-  .description('Returns aggregated daily sending statistics for the current period.')
+bulkSub
+  .command('list')
+  .description('Returns the delivery status of all emails submitted in a bulk request.')
+  .argument('<bulk-id>', 'The bulkId')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails stats retrieve')
-  .action(async (opts) => {
+  .addHelpText('after', '\nExample:\n  $ nuntly emails bulk list em_1234abcd')
+  .action(async (bulkId, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Loading...', () => nuntly.emails.stats.retrieve());
+      const result = await withSpinner('Loading...', () => nuntly.emails.bulk.list(bulkId));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
     }
   });
 
-const eventsSub = new Command('events');
-emailsCommand.addCommand(eventsSub);
-
-eventsSub
-  .command('list')
-  .description('Returns the full delivery event history for an email (sent, delivered, opened, bounced, etc.).')
-  .argument('<id>', 'The id')
+bulkSub
+  .command('send')
+  .description('Send up to 20 emails in a single request. Use `fallback` to set default values shared across all messages.')
+  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails')
+  .option('--emails <value>', 'The bulk emails to send (required)')
+  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails events list em_1234abcd')
-  .action(async (id, opts) => {
+  .addHelpText('after', '\nExample:\n  $ nuntly emails bulk send --emails "value"\n  $ cat payload.json | nuntly emails bulk send\n  $ nuntly emails bulk send --file payload.json')
+  .action(async (opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Loading...', () => nuntly.emails.events.list(id));
+      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+        fallback: opts.fallback != null ? JSON.parse(opts.fallback as string) : undefined,
+        emails: JSON.parse(opts.emails as string)
+      };
+      const result = await withSpinner('Creating...', () => nuntly.emails.bulk.send(body as CreateBulkEmailsRequest));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -77,49 +81,45 @@ contentSub
     }
   });
 
-const bulkSub = new Command('bulk');
-emailsCommand.addCommand(bulkSub);
+const eventsSub = new Command('events');
+emailsCommand.addCommand(eventsSub);
 
-bulkSub
-  .command('send')
-  .description('Send up to 20 emails in a single request. Use `fallback` to set default values shared across all messages.')
-  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails')
-  .option('--emails <value>', 'The bulk emails to send (required)')
-  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+eventsSub
+  .command('list')
+  .description('Returns the full delivery event history for an email (sent, delivered, opened, bounced, etc.).')
+  .argument('<id>', 'The id')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails bulk send --emails "value"\n  $ cat payload.json | nuntly emails bulk send\n  $ nuntly emails bulk send --file payload.json')
-  .action(async (opts) => {
+  .addHelpText('after', '\nExample:\n  $ nuntly emails events list em_1234abcd')
+  .action(async (id, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        fallback: opts.fallback != null ? JSON.parse(opts.fallback as string) : undefined,
-        emails: JSON.parse(opts.emails as string)
-      };
-      const result = await withSpinner('Creating...', () => nuntly.emails.bulk.send(body as CreateBulkEmailsRequest));
+      const result = await withSpinner('Loading...', () => nuntly.emails.events.list(id));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
     }
   });
 
-bulkSub
-  .command('list')
-  .description('Returns the delivery status of all emails submitted in a bulk request.')
-  .argument('<bulk-id>', 'The bulkId')
+const statsSub = new Command('stats');
+emailsCommand.addCommand(statsSub);
+
+statsSub
+  .command('retrieve')
+  .description('Returns aggregated daily sending statistics for the current period.')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails bulk list em_1234abcd')
-  .action(async (bulkId, opts) => {
+  .addHelpText('after', '\nExample:\n  $ nuntly emails stats retrieve')
+  .action(async (opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Loading...', () => nuntly.emails.bulk.list(bulkId));
+      const result = await withSpinner('Loading...', () => nuntly.emails.stats.retrieve());
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -127,19 +127,20 @@ bulkSub
   });
 
 emailsCommand
-  .command('retrieve')
-  .description('Returns an email with its current delivery status and metadata.')
+  .command('cancel')
+  .description('Cancel a scheduled email before delivery. Only emails with `scheduled` status can be cancelled.')
   .argument('<id>', 'The id')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails retrieve em_1234abcd')
+  .addHelpText('after', '\nExample:\n  $ nuntly emails cancel em_1234abcd')
   .action(async (id, opts) => {
     try {
+      if (!await confirmDelete('emails', id)) return;
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Loading...', () => nuntly.emails.retrieve(id));
+      const result = await withSpinner('Deleting...', () => nuntly.emails.cancel(id));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -162,6 +163,26 @@ emailsCommand
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
       const page = await withSpinner('Loading...', () => nuntly.emails.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
       printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+emailsCommand
+  .command('retrieve')
+  .description('Returns an email with its current delivery status and metadata.')
+  .argument('<id>', 'The id')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly emails retrieve em_1234abcd')
+  .action(async (id, opts) => {
+    try {
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const result = await withSpinner('Loading...', () => nuntly.emails.retrieve(id));
+      printResult(result, opts);
     } catch (error) {
       printError(error, opts);
     }
@@ -209,27 +230,6 @@ emailsCommand
         scheduledAt: opts.scheduledAt
       };
       const result = await withSpinner('Creating...', () => nuntly.emails.send(body as CreateEmailRequest));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-emailsCommand
-  .command('cancel')
-  .description('Cancel a scheduled email before delivery. Only emails with `scheduled` status can be cancelled.')
-  .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly emails cancel em_1234abcd')
-  .action(async (id, opts) => {
-    try {
-      if (!await confirmDelete('emails', id)) return;
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Deleting...', () => nuntly.emails.cancel(id));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
