@@ -105,6 +105,27 @@ inboxesCommand
   });
 
 inboxesCommand
+  .command('delete')
+  .description('Soft-delete an inbox.')
+  .argument('<inbox-id>', 'The inboxId')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly inboxes delete ib_7890qrst')
+  .action(async (inboxId, opts) => {
+    try {
+      if (!await confirmDelete('inboxes', inboxId)) return;
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const result = await withSpinner('Deleting...', () => nuntly.inboxes.delete(inboxId));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+inboxesCommand
   .command('list')
   .description('List all inboxes.')
   .option('--cursor <cursor>', 'Pagination cursor')
@@ -164,27 +185,6 @@ inboxesCommand
         name: opts.name
       };
       const result = await withSpinner('Updating...', () => nuntly.inboxes.update(inboxId, body as UpdateInboxRequest));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-inboxesCommand
-  .command('delete')
-  .description('Soft-delete an inbox.')
-  .argument('<inbox-id>', 'The inboxId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly inboxes delete ib_7890qrst')
-  .action(async (inboxId, opts) => {
-    try {
-      if (!await confirmDelete('inboxes', inboxId)) return;
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Deleting...', () => nuntly.inboxes.delete(inboxId));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);

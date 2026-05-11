@@ -10,6 +10,55 @@ export const domainsCommand = new Command('domains')
   .description('Domains resource.');
 
 domainsCommand
+  .command('create')
+  .description('Add a domain to start configuring DNS records for sending or receiving emails.')
+  .option('--name <value>', 'The name of the domain to send e-mails\' (required)')
+  .option('--sending', 'Enable sending')
+  .option('--receiving', 'Enable receiving')
+  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly domains create --name my-resource\n  $ cat payload.json | nuntly domains create\n  $ nuntly domains create --file payload.json')
+  .action(async (opts) => {
+    try {
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+        name: opts.name,
+        sending: opts.sending,
+        receiving: opts.receiving
+      };
+      const result = await withSpinner('Creating...', () => nuntly.domains.create(body as CreateDomainRequest));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+domainsCommand
+  .command('delete')
+  .description('Permanently deletes a domain along with its inboxes, received messages, attachments, and sending configuration. This action is irreversible.')
+  .argument('<id>', 'The id')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly domains delete dm_5678efgh')
+  .action(async (id, opts) => {
+    try {
+      if (!await confirmDelete('domains', id)) return;
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const result = await withSpinner('Deleting...', () => nuntly.domains.delete(id));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+domainsCommand
   .command('list')
   .description('Returns all domains with their verification and capability status.')
   .option('--cursor <cursor>', 'Pagination cursor')
@@ -44,55 +93,6 @@ domainsCommand
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
       const result = await withSpinner('Loading...', () => nuntly.domains.retrieve(id));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-domainsCommand
-  .command('delete')
-  .description('Permanently deletes a domain along with its inboxes, received messages, attachments, and sending configuration. This action is irreversible.')
-  .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly domains delete dm_5678efgh')
-  .action(async (id, opts) => {
-    try {
-      if (!await confirmDelete('domains', id)) return;
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Deleting...', () => nuntly.domains.delete(id));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-domainsCommand
-  .command('create')
-  .description('Add a domain to start configuring DNS records for sending or receiving emails.')
-  .option('--name <value>', 'The name of the domain to send e-mails\' (required)')
-  .option('--sending', 'Enable sending')
-  .option('--receiving', 'Enable receiving')
-  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly domains create --name my-resource\n  $ cat payload.json | nuntly domains create\n  $ nuntly domains create --file payload.json')
-  .action(async (opts) => {
-    try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        name: opts.name,
-        sending: opts.sending,
-        receiving: opts.receiving
-      };
-      const result = await withSpinner('Creating...', () => nuntly.domains.create(body as CreateDomainRequest));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);

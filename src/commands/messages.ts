@@ -1,5 +1,5 @@
 import { Command } from '@commander-js/extra-typings';
-import { Nuntly, type UpdateMessageRequest, type ReplyMessageRequest, type ForwardMessageRequest } from '@nuntly/sdk';
+import { Nuntly, type ForwardMessageRequest, type ReplyMessageRequest, type UpdateMessageRequest } from '@nuntly/sdk';
 import { resolveApiKey, resolveBaseUrl, confirmDelete } from '../auth.js';
 import { CLI_VERSION } from '../version.js';
 import { printResult, printError } from '../output.js';
@@ -8,29 +8,6 @@ import { readInput } from '../files.js';
 
 export const messagesCommand = new Command('messages')
   .description('Messages resource.');
-
-const contentSub = new Command('content');
-messagesCommand.addCommand(contentSub);
-
-contentSub
-  .command('retrieve')
-  .description('Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.')
-  .argument('<message-id>', 'The messageId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages content retrieve mg_4567ghij')
-  .action(async (messageId, opts) => {
-    try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const result = await withSpinner('Loading...', () => nuntly.messages.content.retrieve(messageId));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
 
 const attachmentsSub = new Command('attachments');
 messagesCommand.addCommand(attachmentsSub);
@@ -76,6 +53,56 @@ attachmentsSub
     }
   });
 
+const contentSub = new Command('content');
+messagesCommand.addCommand(contentSub);
+
+contentSub
+  .command('retrieve')
+  .description('Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.')
+  .argument('<message-id>', 'The messageId')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages content retrieve mg_4567ghij')
+  .action(async (messageId, opts) => {
+    try {
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const result = await withSpinner('Loading...', () => nuntly.messages.content.retrieve(messageId));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+messagesCommand
+  .command('forward')
+  .description('Forward a message to new recipients.')
+  .argument('<message-id>', 'The messageId')
+  .option('--to <value>', 'The recipient addresses to forward to. (required)')
+  .option('--text <value>', 'An optional comment to prepend.')
+  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages forward mg_4567ghij --to user@example.com\n  $ cat payload.json | nuntly messages forward mg_4567ghij\n  $ nuntly messages forward mg_4567ghij --file payload.json')
+  .action(async (messageId, opts) => {
+    try {
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+        to: (opts.to as string).split(','),
+        text: opts.text
+      };
+      const result = await withSpinner('Creating...', () => nuntly.messages.forward(messageId, body as ForwardMessageRequest));
+      printResult(result, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
 messagesCommand
   .command('list')
   .description('List all received messages across inboxes.')
@@ -92,6 +119,35 @@ messagesCommand
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
       const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
       printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+    } catch (error) {
+      printError(error, opts);
+    }
+  });
+
+messagesCommand
+  .command('reply')
+  .description('Reply to a message. Set replyAll to true to reply to all recipients.')
+  .argument('<message-id>', 'The messageId')
+  .option('--text <value>', 'The plain text body.')
+  .option('--html <value>', 'The HTML body.')
+  .option('--reply-all', 'Whether to reply to all recipients. (required)')
+  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('-q, --quiet', 'Shorthand for --format quiet')
+  .option('--raw', 'Shorthand for --format raw')
+  .option('--fields <fields>', 'Comma-separated list of fields to display')
+  .option('--no-header', 'Omit column headers in table/csv output')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages reply mg_4567ghij --reply-all\n  $ cat payload.json | nuntly messages reply mg_4567ghij\n  $ nuntly messages reply mg_4567ghij --file payload.json')
+  .action(async (messageId, opts) => {
+    try {
+      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+        text: opts.text,
+        html: opts.html,
+        replyAll: opts.replyAll
+      };
+      const result = await withSpinner('Creating...', () => nuntly.messages.reply(messageId, body as ReplyMessageRequest));
+      printResult(result, opts);
     } catch (error) {
       printError(error, opts);
     }
@@ -138,62 +194,6 @@ messagesCommand
         removeLabels: opts.removeLabels != null ? (opts.removeLabels as string).split(',') : undefined
       };
       const result = await withSpinner('Updating...', () => nuntly.messages.update(messageId, body as UpdateMessageRequest));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-messagesCommand
-  .command('reply')
-  .description('Reply to a message. Set replyAll to true to reply to all recipients.')
-  .argument('<message-id>', 'The messageId')
-  .option('--text <value>', 'The plain text body.')
-  .option('--html <value>', 'The HTML body.')
-  .option('--reply-all', 'Whether to reply to all recipients. (required)')
-  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages reply mg_4567ghij --reply-all\n  $ cat payload.json | nuntly messages reply mg_4567ghij\n  $ nuntly messages reply mg_4567ghij --file payload.json')
-  .action(async (messageId, opts) => {
-    try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        text: opts.text,
-        html: opts.html,
-        replyAll: opts.replyAll
-      };
-      const result = await withSpinner('Creating...', () => nuntly.messages.reply(messageId, body as ReplyMessageRequest));
-      printResult(result, opts);
-    } catch (error) {
-      printError(error, opts);
-    }
-  });
-
-messagesCommand
-  .command('forward')
-  .description('Forward a message to new recipients.')
-  .argument('<message-id>', 'The messageId')
-  .option('--to <value>', 'The recipient addresses to forward to. (required)')
-  .option('--text <value>', 'An optional comment to prepend.')
-  .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
-  .option('-q, --quiet', 'Shorthand for --format quiet')
-  .option('--raw', 'Shorthand for --format raw')
-  .option('--fields <fields>', 'Comma-separated list of fields to display')
-  .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages forward mg_4567ghij --to user@example.com\n  $ cat payload.json | nuntly messages forward mg_4567ghij\n  $ nuntly messages forward mg_4567ghij --file payload.json')
-  .action(async (messageId, opts) => {
-    try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        to: (opts.to as string).split(','),
-        text: opts.text
-      };
-      const result = await withSpinner('Creating...', () => nuntly.messages.forward(messageId, body as ForwardMessageRequest));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
