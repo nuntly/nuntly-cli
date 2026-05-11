@@ -97,6 +97,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          # Configure git's credential helper to use GH_TOKEN so the
+          # subsequent `git push` to the tap repo authenticates without
+          # prompting for a username.
+          gh auth setup-git
+
           DARWIN_ARM64_SHA=$(cat dist/nuntly-darwin-arm64.sha256)
           DARWIN_X64_SHA=$(cat dist/nuntly-darwin-x64.sha256)
           LINUX_ARM64_SHA=$(cat dist/nuntly-linux-arm64.sha256)
