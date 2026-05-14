@@ -134,7 +134,7 @@ namespacesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly namespaces update ns_2345uvwx\n  $ cat payload.json | nuntly namespaces update ns_2345uvwx\n  $ nuntly namespaces update ns_2345uvwx --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly namespaces update ns_2345uvwx --name my-resource\n  $ cat payload.json | nuntly namespaces update ns_2345uvwx\n  $ nuntly namespaces update ns_2345uvwx --file payload.json')
   .action(async (namespaceId, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
