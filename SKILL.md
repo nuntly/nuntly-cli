@@ -122,12 +122,10 @@ Update the key name, permissions, or restrict it to specific sending domains.
 
 Arguments: `<id>`
 
-Required: `--permission`
-
-Optional: `--name`, `--status`, `--domain-ids`
+Optional: `--name`, `--status`, `--permission`, `--domain-ids`
 
 ```bash
-nuntly api-keys update id_example --permission sendingAccess
+nuntly api-keys update id_example --name my-resource
 ```
 
 ### domains
@@ -183,7 +181,7 @@ Arguments: `<id>`
 Optional: `--open-tracking`, `--click-tracking`, `--sending`, `--receiving`
 
 ```bash
-nuntly domains update dm_5678efgh
+nuntly domains update dm_5678efgh --open-tracking
 ```
 
 ### emails
@@ -342,7 +340,7 @@ nuntly inboxes list
 
 #### `nuntly inboxes retrieve`
 
-Retrieve an inbox with thread stats.
+Retrieve an inbox.
 
 Arguments: `<inbox-id>`
 
@@ -359,7 +357,7 @@ Arguments: `<inbox-id>`
 Optional: `--name`
 
 ```bash
-nuntly inboxes update ib_7890qrst
+nuntly inboxes update ib_7890qrst --name my-resource
 ```
 
 ### messages
@@ -451,7 +449,7 @@ Arguments: `<message-id>`
 Optional: `--add-labels`, `--remove-labels`
 
 ```bash
-nuntly messages update mg_4567ghij
+nuntly messages update mg_4567ghij --add-labels spam,reviewed
 ```
 
 ### namespaces
@@ -519,7 +517,7 @@ Arguments: `<namespace-id>`
 Optional: `--name`, `--external-id`
 
 ```bash
-nuntly namespaces update ns_2345uvwx
+nuntly namespaces update ns_2345uvwx --name my-resource
 ```
 
 ### organizations
@@ -587,7 +585,7 @@ Arguments: `<thread-id>`
 Optional: `--add-labels`, `--remove-labels`, `--agent-id`
 
 ```bash
-nuntly threads update th_0123cdef
+nuntly threads update th_0123cdef --agent-id agent_abc123
 ```
 
 ### webhooks
@@ -673,5 +671,5 @@ Arguments: `<id>`
 Optional: `--name`, `--endpoint-url`, `--events`, `--status`, `--rotate-secret`
 
 ```bash
-nuntly webhooks update wh_9012ijkl
+nuntly webhooks update wh_9012ijkl --name my-resource
 ```

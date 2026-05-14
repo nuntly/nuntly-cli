@@ -148,7 +148,7 @@ inboxesCommand
 
 inboxesCommand
   .command('retrieve')
-  .description('Retrieve an inbox with thread stats.')
+  .description('Retrieve an inbox.')
   .argument('<inbox-id>', 'The inboxId')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
@@ -177,7 +177,7 @@ inboxesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly inboxes update ib_7890qrst\n  $ cat payload.json | nuntly inboxes update ib_7890qrst\n  $ nuntly inboxes update ib_7890qrst --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly inboxes update ib_7890qrst --name my-resource\n  $ cat payload.json | nuntly inboxes update ib_7890qrst\n  $ nuntly inboxes update ib_7890qrst --file payload.json')
   .action(async (inboxId, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });

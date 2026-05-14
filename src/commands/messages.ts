@@ -185,7 +185,7 @@ messagesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages update mg_4567ghij\n  $ cat payload.json | nuntly messages update mg_4567ghij\n  $ nuntly messages update mg_4567ghij --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages update mg_4567ghij --add-labels spam,reviewed\n  $ cat payload.json | nuntly messages update mg_4567ghij\n  $ nuntly messages update mg_4567ghij --file payload.json')
   .action(async (messageId, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });

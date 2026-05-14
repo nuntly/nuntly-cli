@@ -67,7 +67,7 @@ threadsCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly threads update th_0123cdef\n  $ cat payload.json | nuntly threads update th_0123cdef\n  $ nuntly threads update th_0123cdef --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly threads update th_0123cdef --agent-id agent_abc123\n  $ cat payload.json | nuntly threads update th_0123cdef\n  $ nuntly threads update th_0123cdef --file payload.json')
   .action(async (threadId, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });

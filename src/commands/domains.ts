@@ -113,7 +113,7 @@ domainsCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly domains update dm_5678efgh\n  $ cat payload.json | nuntly domains update dm_5678efgh\n  $ nuntly domains update dm_5678efgh --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly domains update dm_5678efgh --open-tracking\n  $ cat payload.json | nuntly domains update dm_5678efgh\n  $ nuntly domains update dm_5678efgh --file payload.json')
   .action(async (id, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });

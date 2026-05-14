@@ -107,7 +107,7 @@ apiKeysCommand
   .argument('<id>', 'The id')
   .option('--name <value>', 'The name of the api key')
   .option('--status <value>', 'status')
-  .option('--permission <value>', 'The permission type for the api key (required)')
+  .option('--permission <value>', 'The permission type for the api key')
   .option('--domain-ids <value>', 'The domain ids to restrict the api key to (only for sendingAccess)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
@@ -115,7 +115,7 @@ apiKeysCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly api-keys update id_example --permission sendingAccess\n  $ cat payload.json | nuntly api-keys update id_example\n  $ nuntly api-keys update id_example --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly api-keys update id_example --name my-resource\n  $ cat payload.json | nuntly api-keys update id_example\n  $ nuntly api-keys update id_example --file payload.json')
   .action(async (id, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });

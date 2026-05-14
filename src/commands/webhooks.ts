@@ -182,7 +182,7 @@ webhooksCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly webhooks update wh_9012ijkl\n  $ cat payload.json | nuntly webhooks update wh_9012ijkl\n  $ nuntly webhooks update wh_9012ijkl --file payload.json')
+  .addHelpText('after', '\nExample:\n  $ nuntly webhooks update wh_9012ijkl --name my-resource\n  $ cat payload.json | nuntly webhooks update wh_9012ijkl\n  $ nuntly webhooks update wh_9012ijkl --file payload.json')
   .action(async (id, opts) => {
     try {
       const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
