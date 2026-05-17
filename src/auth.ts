@@ -9,7 +9,9 @@ import {
 import { homedir, platform } from "node:os";
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
+import { Nuntly } from "@nuntly/sdk";
 import pc from "picocolors";
+import { CLI_VERSION } from "./version.js";
 
 export type OutputFormat = "json" | "table" | "yaml" | "markdown" | "quiet";
 
@@ -140,6 +142,24 @@ export function resolveOutputFormat(
 	return profile.outputFormat;
 }
 
+export interface GlobalFlags {
+	apiKey?: string;
+	yes?: boolean;
+	profile?: string;
+}
+
+export function createNuntlyClient(cmd: {
+	optsWithGlobals(): unknown;
+}): { nuntly: Nuntly; globals: GlobalFlags } {
+	const globals = cmd.optsWithGlobals() as GlobalFlags;
+	const nuntly = new Nuntly({
+		apiKey: resolveApiKey(globals.apiKey, globals.profile),
+		baseUrl: resolveBaseUrl(undefined, globals.profile),
+		appInfo: { name: "@nuntly/cli", version: CLI_VERSION },
+	});
+	return { nuntly, globals };
+}
+
 export async function login(profileName?: string): Promise<void> {
 	const name = profileName ?? "default";
 	p.intro(
@@ -182,7 +202,22 @@ export async function login(profileName?: string): Promise<void> {
 export async function confirmDelete(
 	resource: string,
 	id: string,
+	skipPrompt = false,
 ): Promise<boolean> {
+	// Bypass the interactive prompt when `--yes` was passed or when stdin is
+	// not a TTY (CI/scripts). In the non-TTY case @clack/prompts would either
+	// hang or fail, so we treat absence of `--yes` as a refusal so scripts
+	// don't accidentally delete resources.
+	if (skipPrompt) return true;
+	if (!process.stdin.isTTY) {
+		console.error(
+			pc.red(
+				`Error: refusing to delete ${resource} ${pc.bold(id)} without a TTY.`,
+			),
+		);
+		console.error(`Pass ${pc.bold("--yes")} (or ${pc.bold("-y")}) to confirm.`);
+		return false;
+	}
 	const result = await p.confirm({
 		message: `Delete ${resource} ${pc.bold(id)}?`,
 	});

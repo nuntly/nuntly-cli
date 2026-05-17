@@ -1,7 +1,6 @@
 import { Command } from '@commander-js/extra-typings';
-import { Nuntly, type CreateNamespaceRequest, type UpdateNamespaceRequest } from '@nuntly/sdk';
-import { resolveApiKey, resolveBaseUrl, confirmDelete } from '../auth.js';
-import { CLI_VERSION } from '../version.js';
+import type { CreateNamespaceRequest, UpdateNamespaceRequest } from '@nuntly/sdk';
+import { createNuntlyClient, confirmDelete } from '../auth.js';
 import { printResult, printError } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
@@ -18,17 +17,25 @@ inboxesSub
   .argument('<namespace-id>', 'The namespaceId')
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
+  .option('--all', 'Fetch all pages (auto-paginate)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces inboxes list ib_7890qrst\n  $ nuntly namespaces inboxes list ib_7890qrst --format json | jq \'.data[].id\'')
-  .action(async (namespaceId, opts) => {
+  .action(async (namespaceId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const page = await withSpinner('Loading...', () => nuntly.namespaces.inboxes.list(namespaceId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
-      printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      const { nuntly } = createNuntlyClient(cmd);
+      if (opts.all) {
+        const page = await withSpinner('Loading...', () => nuntly.namespaces.inboxes.list(namespaceId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
+        const all = [] as typeof page.data;
+        for await (const item of page) all.push(item);
+        printResult({ data: all }, opts);
+      } else {
+        const page = await withSpinner('Loading...', () => nuntly.namespaces.inboxes.list(namespaceId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
+        printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      }
     } catch (error) {
       printError(error, opts);
     }
@@ -46,9 +53,9 @@ namespacesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces create --name my-resource\n  $ cat payload.json | nuntly namespaces create\n  $ nuntly namespaces create --file payload.json')
-  .action(async (opts) => {
+  .action(async (opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
         name: opts.name,
         externalId: opts.externalId
@@ -70,10 +77,10 @@ namespacesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces delete ns_2345uvwx')
-  .action(async (namespaceId, opts) => {
+  .action(async (namespaceId, opts, cmd) => {
     try {
-      if (!await confirmDelete('namespaces', namespaceId)) return;
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly, globals } = createNuntlyClient(cmd);
+      if (!await confirmDelete('namespaces', namespaceId, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.namespaces.delete(namespaceId));
       printResult(result, opts);
     } catch (error) {
@@ -86,17 +93,25 @@ namespacesCommand
   .description('List all namespaces.')
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
+  .option('--all', 'Fetch all pages (auto-paginate)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces list\n  $ nuntly namespaces list --format json | jq \'.data[].id\'')
-  .action(async (opts) => {
+  .action(async (opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const page = await withSpinner('Loading...', () => nuntly.namespaces.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
-      printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      const { nuntly } = createNuntlyClient(cmd);
+      if (opts.all) {
+        const page = await withSpinner('Loading...', () => nuntly.namespaces.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
+        const all = [] as typeof page.data;
+        for await (const item of page) all.push(item);
+        printResult({ data: all }, opts);
+      } else {
+        const page = await withSpinner('Loading...', () => nuntly.namespaces.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
+        printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      }
     } catch (error) {
       printError(error, opts);
     }
@@ -112,9 +127,9 @@ namespacesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces retrieve ns_2345uvwx')
-  .action(async (namespaceId, opts) => {
+  .action(async (namespaceId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.namespaces.retrieve(namespaceId));
       printResult(result, opts);
     } catch (error) {
@@ -135,9 +150,9 @@ namespacesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly namespaces update ns_2345uvwx --name my-resource\n  $ cat payload.json | nuntly namespaces update ns_2345uvwx\n  $ nuntly namespaces update ns_2345uvwx --file payload.json')
-  .action(async (namespaceId, opts) => {
+  .action(async (namespaceId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
         name: opts.name,
         externalId: opts.externalId

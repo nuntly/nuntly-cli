@@ -233,8 +233,17 @@ function isJsonMode(opts?: OutputOpts): boolean {
 	return false;
 }
 
+// Map an APIError to the CLI exit code. The 4/5 split surfaces auth and
+// rate-limit failures distinctly so callers (CI, shell scripts) can branch
+// on them without parsing stderr. See README "Exit codes" for the table.
+function exitCodeFor(err: { status?: number }): number {
+	if (err.status === 401 || err.status === 403) return 4; // auth
+	if (err.status === 429) return 5; // rate-limit
+	return 1; // generic API error
+}
+
 export function printError(error: unknown, opts?: OutputOpts) {
-	const e = error as any;
+	const e = error as { status?: number; body?: { message?: string; errors?: Array<{ field: string; message: string }> }; message?: string; requestId?: string };
 	const isApi = !!e?.status;
 
 	if (isJsonMode(opts)) {
@@ -263,5 +272,5 @@ export function printError(error: unknown, opts?: OutputOpts) {
 		}
 	}
 
-	process.exit(isApi ? 1 : 2);
+	process.exit(isApi ? exitCodeFor(e) : 2);
 }
