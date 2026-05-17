@@ -1,7 +1,6 @@
 import { Command } from '@commander-js/extra-typings';
-import { Nuntly, type ForwardMessageRequest, type ReplyMessageRequest, type UpdateMessageRequest } from '@nuntly/sdk';
-import { resolveApiKey, resolveBaseUrl, confirmDelete } from '../auth.js';
-import { CLI_VERSION } from '../version.js';
+import type { ForwardMessageRequest, ReplyMessageRequest, UpdateMessageRequest } from '@nuntly/sdk';
+import { createNuntlyClient, confirmDelete } from '../auth.js';
 import { printResult, printError } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
@@ -22,9 +21,9 @@ attachmentsSub
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages attachments list mg_4567ghij')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.messages.attachments.list(messageId));
       printResult(result, opts);
     } catch (error) {
@@ -43,9 +42,9 @@ attachmentsSub
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages attachments retrieve mg_4567ghij mg_4567ghij')
-  .action(async (messageId, attachmentId, opts) => {
+  .action(async (messageId, attachmentId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.messages.attachments.retrieve(messageId, attachmentId));
       printResult(result, opts);
     } catch (error) {
@@ -66,9 +65,9 @@ contentSub
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages content retrieve mg_4567ghij')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.messages.content.retrieve(messageId));
       printResult(result, opts);
     } catch (error) {
@@ -80,23 +79,24 @@ messagesCommand
   .command('forward')
   .description('Forward a message to new recipients.')
   .argument('<message-id>', 'The messageId')
-  .option('--to <value>', 'The recipient addresses to forward to. (required)')
+  .option('--to <value>', 'The recipient addresses to forward to. (repeatable) (required)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--text <value>', 'An optional comment to prepend.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+  .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages forward mg_4567ghij --to user@example.com\n  $ cat payload.json | nuntly messages forward mg_4567ghij\n  $ nuntly messages forward mg_4567ghij --file payload.json')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        to: (opts.to as string).split(','),
+        to: opts.to as string[],
         text: opts.text
       };
-      const result = await withSpinner('Creating...', () => nuntly.messages.forward(messageId, body as ForwardMessageRequest));
+      const result = await withSpinner('Creating...', () => nuntly.messages.forward(messageId, body as ForwardMessageRequest, opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -108,17 +108,27 @@ messagesCommand
   .description('List all received messages across inboxes.')
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
+  .option('--domain-id <value>', 'Filter by domain.')
+  .option('--from <value>', 'Filter by sender address.')
+  .option('--all', 'Fetch all pages (auto-paginate)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages list\n  $ nuntly messages list --format json | jq \'.data[].id\'')
-  .action(async (opts) => {
+  .action(async (opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
-      const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
-      printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      const { nuntly } = createNuntlyClient(cmd);
+      if (opts.all) {
+        const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
+        const all = [] as typeof page.data;
+        for await (const item of page) all.push(item);
+        printResult({ data: all }, opts);
+      } else {
+        const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
+        printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
+      }
     } catch (error) {
       printError(error, opts);
     }
@@ -132,21 +142,22 @@ messagesCommand
   .option('--html <value>', 'The HTML body.')
   .option('--reply-all', 'Whether to reply to all recipients. (required)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
+  .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages reply mg_4567ghij --reply-all\n  $ cat payload.json | nuntly messages reply mg_4567ghij\n  $ nuntly messages reply mg_4567ghij --file payload.json')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
         text: opts.text,
         html: opts.html,
         replyAll: opts.replyAll
       };
-      const result = await withSpinner('Creating...', () => nuntly.messages.reply(messageId, body as ReplyMessageRequest));
+      const result = await withSpinner('Creating...', () => nuntly.messages.reply(messageId, body as ReplyMessageRequest, opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined));
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -163,9 +174,9 @@ messagesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages retrieve mg_4567ghij')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.messages.retrieve(messageId));
       printResult(result, opts);
     } catch (error) {
@@ -177,8 +188,8 @@ messagesCommand
   .command('update')
   .description('Update message labels. Only available for messages in user-created inboxes.')
   .argument('<message-id>', 'The messageId')
-  .option('--add-labels <value>', 'Labels to add to the message.')
-  .option('--remove-labels <value>', 'Labels to remove from the message.')
+  .option('--add-labels <value>', 'Labels to add to the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
+  .option('--remove-labels <value>', 'Labels to remove from the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
   .option('-q, --quiet', 'Shorthand for --format quiet')
@@ -186,12 +197,12 @@ messagesCommand
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly messages update mg_4567ghij --add-labels spam,reviewed\n  $ cat payload.json | nuntly messages update mg_4567ghij\n  $ nuntly messages update mg_4567ghij --file payload.json')
-  .action(async (messageId, opts) => {
+  .action(async (messageId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        addLabels: opts.addLabels != null ? (opts.addLabels as string).split(',') : undefined,
-        removeLabels: opts.removeLabels != null ? (opts.removeLabels as string).split(',') : undefined
+        addLabels: (opts.addLabels as string[] | undefined)?.length ? (opts.addLabels as string[]) : undefined,
+        removeLabels: (opts.removeLabels as string[] | undefined)?.length ? (opts.removeLabels as string[]) : undefined
       };
       const result = await withSpinner('Updating...', () => nuntly.messages.update(messageId, body as UpdateMessageRequest));
       printResult(result, opts);

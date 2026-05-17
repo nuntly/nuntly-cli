@@ -18,7 +18,9 @@ const program = new Command()
   .name('nuntly')
   .description(pc.bold('Nuntly CLI') + ' - Developer-first email platform')
   .version(CLI_VERSION)
-  .option('--profile <name>', 'Use a specific profile from ~/.nuntly/config.json');
+  .option('--profile <name>', 'Use a specific profile from ~/.nuntly/config.json')
+  .option('--api-key <key>', 'API key (overrides NUNTLY_API_KEY env var and profile)')
+  .option('-y, --yes', 'Skip interactive confirmation prompts (e.g. for delete)');
 
 import { login, listProfiles } from './auth.js';
 import { bashCompletion, zshCompletion, fishCompletion, powershellCompletion } from './completion.js';

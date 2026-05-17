@@ -76,7 +76,7 @@ nuntly agents memory upsert ag_6789yzab --memory "value"
 
 #### `nuntly api-keys create`
 
-Generate a new API key. The key value is only returned once — store it securely.
+Generate a new API key. The key value is only returned once. Store it securely.
 
 Required: `--permission`
 
@@ -132,7 +132,7 @@ nuntly api-keys update id_example --name my-resource
 
 #### `nuntly domains create`
 
-Add a domain to start configuring DNS records for sending or receiving emails.
+Add a domain for sending or receiving emails.
 
 Required: `--name`
 
@@ -188,7 +188,7 @@ nuntly domains update dm_5678efgh --open-tracking
 
 #### `nuntly emails bulk list`
 
-Returns the delivery status of all emails submitted in a bulk request.
+Returns the emails submitted in a bulk request.
 
 Arguments: `<bulk-id>`
 
@@ -220,7 +220,7 @@ nuntly emails content retrieve em_1234abcd
 
 #### `nuntly emails events list`
 
-Returns the full delivery event history for an email (sent, delivered, opened, bounced, etc.).
+Returns the delivery event history for an email (sent, delivered, opened, bounced, etc.).
 
 Arguments: `<id>`
 
@@ -532,16 +532,6 @@ Arguments: `<id>`
 nuntly organizations usage retrieve org_8901klmn
 ```
 
-#### `nuntly organizations retrieve`
-
-Returns the organization's profile, plan, region, and account status.
-
-Arguments: `<id>`
-
-```bash
-nuntly organizations retrieve org_8901klmn
-```
-
 #### `nuntly organizations list`
 
 Returns all organizations the authenticated user belongs to.
@@ -550,6 +540,16 @@ Pagination: `--cursor`, `--limit`
 
 ```bash
 nuntly organizations list
+```
+
+#### `nuntly organizations retrieve`
+
+Returns the organization's profile, plan, region, and account status.
+
+Arguments: `<id>`
+
+```bash
+nuntly organizations retrieve org_8901klmn
 ```
 
 ### threads

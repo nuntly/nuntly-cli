@@ -13,6 +13,7 @@ Command-line interface for [Nuntly](https://nuntly.com), the developer-first ema
 - [Installation](#installation)
 - [Authentication](#authentication)
 - [Quick start](#quick-start)
+- [Exit codes](#exit-codes)
 - [Commands](#commands)
 - [Output formats](#output-formats)
 - [Delete confirmation](#delete-confirmation)
@@ -115,6 +116,41 @@ nuntly --api-key your-key emails list
 
 Priority: `--api-key` flag > `NUNTLY_API_KEY` env var > `~/.nuntly/config.json`
 
+## Non-interactive use (CI / scripts)
+
+### Skip delete confirmation
+
+Destructive commands (`delete`) prompt for confirmation by default. Pass `-y` /
+`--yes` to skip the prompt. When stdin is not a TTY, the CLI refuses to delete
+without `--yes` to avoid accidental destruction in pipelines.
+
+```bash
+nuntly --yes domains delete dm_5678efgh
+nuntly -y webhooks delete wh_9012ijkl
+```
+
+### Idempotency-Key for send commands
+
+`emails send`, `emails bulk send`, `messages reply`, and `messages forward`
+support an `--idempotency-key` flag. The Nuntly API deduplicates by the
+`Idempotency-Key` HTTP header, so safe retries replay rather than duplicate.
+
+When the flag is omitted the SDK auto-generates a UUID v4 per call. Pass an
+explicit key when your job runner needs a stable, replay-safe identifier.
+
+```bash
+nuntly emails send \
+  --from hello@yourcompany.com \
+  --to user@example.com \
+  --subject "Welcome" \
+  --text "Hi" \
+  --idempotency-key "welcome-user-42"
+
+nuntly messages reply mg_4567ghij \
+  --text "thanks" \
+  --idempotency-key "reply-mg_4567ghij-v1"
+```
+
 ## Quick start
 
 ```bash
@@ -141,6 +177,40 @@ nuntly domains create --name example.com --sending
 nuntly webhooks create \
   --endpoint-url https://example.com/hooks \
   --events email.delivered,email.bounced
+```
+
+### Bulk send
+
+```bash
+# From a JSON file
+nuntly emails bulk send --file batch.json --idempotency-key mybatch-v1
+
+# From stdin (pipe)
+cat batch.json | nuntly emails bulk send
+```
+
+`batch.json` is an array of email envelopes matching `CreateEmailRequest`. The
+`--idempotency-key` lets you safely retry the batch without sending duplicates.
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Generic API error (HTTP 4xx/5xx not covered below) |
+| 2 | Usage / validation error (unknown flag, missing argument, ...) |
+| 4 | Authentication / authorization failure (HTTP 401 or 403) |
+| 5 | Rate limit exceeded (HTTP 429) |
+| 130 | SIGINT (Ctrl+C) |
+
+```bash
+nuntly emails send --from ... --to ... --subject ...
+case $? in
+  0) echo "ok" ;;
+  4) echo "rotate the API key" ;;
+  5) echo "backing off, retrying later" ;;
+  *) echo "see stderr for details" ;;
+esac
 ```
 
 ## Commands
@@ -179,7 +249,7 @@ Run `nuntly <command> --help` for details on any command.
 nuntly emails retrieve em_123
 
 # Compact JSON (for piping to jq)
-nuntly emails list --json | jq '.data[].id'
+nuntly emails list --format json | jq '.data[].id'
 
 # ID only (for scripting)
 nuntly emails send ... --quiet
@@ -224,6 +294,20 @@ The CLI version tracks the underlying Nuntly SDK version closely.
 ## Contributing
 
 Issues, bug reports, and feature requests are welcome at [github.com/nuntly/nuntly-cli/issues](https://github.com/nuntly/nuntly-cli/issues).
+
+## Troubleshooting
+
+**`nuntly: command not found`**
+Install the CLI globally with `npm i -g @nuntly/cli`, or use the curl one-liner from the [Installation](#installation) section. Confirm your `npm` global prefix is on `$PATH` (`npm config get prefix`).
+
+**`Error: API key not found`**
+Run `nuntly login` to store a key on disk, or export `NUNTLY_API_KEY=...` in your shell. The CLI checks the environment variable first, then the on-disk credentials.
+
+**HTTP 401 errors on every command**
+The current key is invalid, revoked, or scoped to a different organization. Run `nuntly api-keys list` from another working key (or the dashboard) to confirm the active key fingerprint, then `nuntly login` again with a fresh key.
+
+**`command timeout` or hangs**
+Check network connectivity to `api.nuntly.com` and retry with `--debug` to print the full request/response trace. Corporate proxies typically require `HTTPS_PROXY=...` to be set in the environment.
 
 ## License
 

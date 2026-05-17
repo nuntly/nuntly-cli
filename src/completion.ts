@@ -14,6 +14,24 @@ const COMMANDS = [
 	"api-keys",
 ];
 
+// Flags accepted on any command (kept in sync with the global options
+// declared in src/index.ts and the per-command options emitted by the
+// generator). Fake flags like `--json` / `--yaml` were dropped: the real
+// switch is `--format <fmt>`, the others are shorthands.
+const GLOBAL_FLAGS = [
+	"--format",
+	"--raw",
+	"--quiet",
+	"-q",
+	"--fields",
+	"--no-header",
+	"--profile",
+	"--api-key",
+	"--yes",
+	"-y",
+	"--help",
+];
+
 const SUBCOMMANDS: Record<string, string[]> = {
 	emails: [
 		"send",
@@ -69,7 +87,7 @@ ${Object.entries(SUBCOMMANDS)
       esac
       ;;
     *)
-      COMPREPLY=( $(compgen -W "--json --yaml --markdown --table --quiet --profile --help" -- "\${cur}") )
+      COMPREPLY=( $(compgen -W "${GLOBAL_FLAGS.join(" ")}" -- "\${cur}") )
       ;;
   esac
 }

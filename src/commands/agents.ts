@@ -1,7 +1,6 @@
 import { Command } from '@commander-js/extra-typings';
-import { Nuntly, type AgentMemoryRequest } from '@nuntly/sdk';
-import { resolveApiKey, resolveBaseUrl, confirmDelete } from '../auth.js';
-import { CLI_VERSION } from '../version.js';
+import type { AgentMemoryRequest } from '@nuntly/sdk';
+import { createNuntlyClient, confirmDelete } from '../auth.js';
 import { printResult, printError } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
@@ -22,9 +21,9 @@ memorySub
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly agents memory retrieve ag_6789yzab')
-  .action(async (agentId, opts) => {
+  .action(async (agentId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const result = await withSpinner('Loading...', () => nuntly.agents.memory.retrieve(agentId));
       printResult(result, opts);
     } catch (error) {
@@ -47,9 +46,9 @@ memorySub
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
   .addHelpText('after', '\nExample:\n  $ nuntly agents memory upsert ag_6789yzab --memory "value"\n  $ cat payload.json | nuntly agents memory upsert ag_6789yzab\n  $ nuntly agents memory upsert ag_6789yzab --file payload.json')
-  .action(async (agentId, opts) => {
+  .action(async (agentId, opts, cmd) => {
     try {
-      const nuntly = new Nuntly({ apiKey: resolveApiKey(), baseUrl: resolveBaseUrl(), appInfo: { name: '@nuntly/cli', version: CLI_VERSION } });
+      const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
         inboxId: opts.inboxId,
         threadId: opts.threadId,
