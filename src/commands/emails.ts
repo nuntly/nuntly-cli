@@ -34,8 +34,8 @@ bulkSub
 bulkSub
   .command('send')
   .description('Send up to 20 emails in a single request. Use `fallback` to set default values shared across all messages.')
-  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails')
-  .option('--emails <value>', 'The bulk emails to send (required)')
+  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails.')
+  .option('--emails <value>', 'The bulk emails to send. (required)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
