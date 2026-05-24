@@ -34,8 +34,8 @@ bulkSub
 bulkSub
   .command('send')
   .description('Send up to 20 emails in a single request. Use `fallback` to set default values shared across all messages.')
-  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails')
-  .option('--emails <value>', 'The bulk emails to send (required)')
+  .option('--fallback <value>', 'Used as a fallback field email value if no value is present in emails.')
+  .option('--emails <value>', 'The bulk emails to send. (required)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
@@ -48,7 +48,7 @@ bulkSub
     try {
       const { nuntly } = createNuntlyClient(cmd);
       const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        fallback: opts.fallback != null ? JSON.parse(opts.fallback as string) : undefined,
+        fallback: opts.fallback,
         emails: JSON.parse(opts.emails as string)
       };
       const result = await withSpinner('Creating...', () => nuntly.emails.bulk.send(body as CreateBulkEmailsRequest, opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined));
