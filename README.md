@@ -59,7 +59,7 @@ Installs `nuntly.exe` to `%USERPROFILE%\.nuntly\bin` and adds it to your user `P
 brew install nuntly/tap/nuntly
 ```
 
-### npm (requires Node.js 18+ or Bun)
+### npm (requires Node.js 20+ or Bun)
 
 ```bash
 npm install -g @nuntly/cli
@@ -249,7 +249,7 @@ Run `nuntly <command> --help` for details on any command.
 nuntly emails retrieve em_123
 
 # Compact JSON (for piping to jq)
-nuntly emails list --format json | jq '.data[].id'
+nuntly emails list --raw | jq '.data[].id'
 
 # ID only (for scripting)
 nuntly emails send ... --quiet
@@ -262,7 +262,7 @@ All delete commands require interactive confirmation:
 
 ```
 $ nuntly domains delete dm_5678efgh
-? Delete domain dm_5678efgh? (Y/n)
+◆ Delete domain dm_5678efgh? › No / Yes
 ```
 
 ## FAQ
