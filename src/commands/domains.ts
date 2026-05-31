@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { CreateDomainRequest, UpdateDomainRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -15,7 +15,7 @@ domainsCommand
   .option('--sending', 'Enable sending')
   .option('--receiving', 'Enable receiving')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -40,7 +40,7 @@ domainsCommand
   .command('delete')
   .description('Permanently deletes a domain along with its inboxes, received messages, attachments, and sending configuration. This action is irreversible.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -49,7 +49,7 @@ domainsCommand
   .action(async (id, opts, cmd) => {
     try {
       const { nuntly, globals } = createNuntlyClient(cmd);
-      if (!await confirmDelete('domains', id, !!globals.yes)) return;
+      if (!await confirmDelete('domain', id, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.domains.delete(id));
       printResult(result, opts);
     } catch (error) {
@@ -63,7 +63,7 @@ domainsCommand
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -76,7 +76,7 @@ domainsCommand
         const page = await withSpinner('Loading...', () => nuntly.domains.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.domains.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -90,7 +90,7 @@ domainsCommand
   .command('retrieve')
   .description('Returns a domain with its DNS record configuration and current verification status for each record.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -115,7 +115,7 @@ domainsCommand
   .option('--sending', 'Enable or disable sending')
   .option('--receiving', 'Enable or disable receiving')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')

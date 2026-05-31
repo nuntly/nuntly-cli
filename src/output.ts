@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from "commander";
 import pc from "picocolors";
 
 export type OutputFormat =
@@ -8,6 +9,30 @@ export type OutputFormat =
 	| "csv"
 	| "markdown"
 	| "quiet";
+
+export const OUTPUT_FORMATS: readonly OutputFormat[] = [
+	"json",
+	"raw",
+	"table",
+	"yaml",
+	"csv",
+	"markdown",
+	"quiet",
+];
+
+/**
+ * Commander argument parser for `--format`. Rejects unknown values up front
+ * (instead of silently falling back to JSON) so a typo like `--format tabel`
+ * fails with a clear usage error rather than producing surprising output.
+ */
+export function parseFormat(value: string): OutputFormat {
+	if (!(OUTPUT_FORMATS as readonly string[]).includes(value)) {
+		throw new InvalidArgumentError(
+			`Invalid format '${value}'. Choose from: ${OUTPUT_FORMATS.join(", ")}.`,
+		);
+	}
+	return value as OutputFormat;
+}
 
 export interface OutputOpts {
 	format?: string;

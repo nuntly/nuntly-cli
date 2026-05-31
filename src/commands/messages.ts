@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { ForwardMessageRequest, ReplyMessageRequest, UpdateMessageRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -15,7 +15,7 @@ attachmentsSub
   .command('list')
   .description('List all attachments for a message.')
   .argument('<message-id>', 'The messageId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -36,7 +36,7 @@ attachmentsSub
   .description('Retrieve an attachment with a presigned download URL.')
   .argument('<message-id>', 'The messageId')
   .argument('<attachment-id>', 'The attachmentId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -59,7 +59,7 @@ contentSub
   .command('retrieve')
   .description('Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.')
   .argument('<message-id>', 'The messageId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -83,7 +83,7 @@ messagesCommand
   .option('--text <value>', 'An optional comment to prepend.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -111,7 +111,7 @@ messagesCommand
   .option('--domain-id <value>', 'Filter by domain.')
   .option('--from <value>', 'Filter by sender address.')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -124,7 +124,7 @@ messagesCommand
         const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -143,7 +143,7 @@ messagesCommand
   .option('--reply-all', 'Whether to reply to all recipients. (required)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -168,7 +168,7 @@ messagesCommand
   .command('retrieve')
   .description('Retrieve a single message with inbox enrichment.')
   .argument('<message-id>', 'The messageId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -191,7 +191,7 @@ messagesCommand
   .option('--add-labels <value>', 'Labels to add to the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--remove-labels <value>', 'Labels to remove from the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')

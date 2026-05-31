@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { CreateNamespaceRequest, UpdateNamespaceRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -18,7 +18,7 @@ inboxesSub
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -31,7 +31,7 @@ inboxesSub
         const page = await withSpinner('Loading...', () => nuntly.namespaces.inboxes.list(namespaceId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.namespaces.inboxes.list(namespaceId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -47,7 +47,7 @@ namespacesCommand
   .option('--name <value>', 'The display name of the namespace. (required)')
   .option('--external-id <value>', 'An optional external identifier for the namespace.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -71,7 +71,7 @@ namespacesCommand
   .command('delete')
   .description('Soft-delete a namespace. Rejects if it has active inboxes.')
   .argument('<namespace-id>', 'The namespaceId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -80,7 +80,7 @@ namespacesCommand
   .action(async (namespaceId, opts, cmd) => {
     try {
       const { nuntly, globals } = createNuntlyClient(cmd);
-      if (!await confirmDelete('namespaces', namespaceId, !!globals.yes)) return;
+      if (!await confirmDelete('namespace', namespaceId, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.namespaces.delete(namespaceId));
       printResult(result, opts);
     } catch (error) {
@@ -94,7 +94,7 @@ namespacesCommand
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -107,7 +107,7 @@ namespacesCommand
         const page = await withSpinner('Loading...', () => nuntly.namespaces.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.namespaces.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -121,7 +121,7 @@ namespacesCommand
   .command('retrieve')
   .description('Retrieve a namespace with inbox stats.')
   .argument('<namespace-id>', 'The namespaceId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -144,7 +144,7 @@ namespacesCommand
   .option('--name <value>', 'The display name of the namespace.')
   .option('--external-id <value>', 'An optional external identifier for the namespace.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')

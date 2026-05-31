@@ -13,7 +13,10 @@ import { Nuntly } from "@nuntly/sdk";
 import pc from "picocolors";
 import { CLI_VERSION } from "./version.js";
 
-export type OutputFormat = "json" | "table" | "yaml" | "markdown" | "quiet";
+// Single source of truth lives in output.ts (includes raw + csv). Import for
+// local use AND re-export so callers importing it from auth.js keep working.
+import type { OutputFormat } from "./output.js";
+export type { OutputFormat };
 
 export interface ProfileConfig {
 	apiKey?: string;
@@ -216,7 +219,10 @@ export async function confirmDelete(
 			),
 		);
 		console.error(`Pass ${pc.bold("--yes")} (or ${pc.bold("-y")}) to confirm.`);
-		return false;
+		// Usage error in a non-interactive context: exit non-zero so a CI script
+		// (`nuntly ... delete X && ...`) halts instead of silently succeeding
+		// while nothing was deleted.
+		process.exit(2);
 	}
 	const result = await p.confirm({
 		message: `Delete ${resource} ${pc.bold(id)}?`,

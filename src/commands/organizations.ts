@@ -1,6 +1,6 @@
 import { Command } from '@commander-js/extra-typings';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 
 export const organizationsCommand = new Command('organizations')
@@ -13,7 +13,7 @@ usageSub
   .command('retrieve')
   .description('Returns current period usage metrics (daily and monthly) for sending and receiving, against your plan limits.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -35,7 +35,7 @@ organizationsCommand
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -48,7 +48,7 @@ organizationsCommand
         const page = await withSpinner('Loading...', () => nuntly.organizations.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.organizations.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -62,7 +62,7 @@ organizationsCommand
   .command('retrieve')
   .description('Returns the organization\'s profile, plan, region, and account status.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')

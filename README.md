@@ -261,8 +261,8 @@ nuntly emails send ... --quiet
 All delete commands require interactive confirmation:
 
 ```
-$ nuntly domains delete dns_01ka8k8s80gvx9604cn9am5st4
-? Delete domains dns_01ka8k8s80gvx9604cn9am5st4? (Y/n)
+$ nuntly domains delete dm_5678efgh
+? Delete domain dm_5678efgh? (Y/n)
 ```
 
 ## FAQ
@@ -307,7 +307,7 @@ Run `nuntly login` to store a key on disk, or export `NUNTLY_API_KEY=...` in you
 The current key is invalid, revoked, or scoped to a different organization. Run `nuntly api-keys list` from another working key (or the dashboard) to confirm the active key fingerprint, then `nuntly login` again with a fresh key.
 
 **`command timeout` or hangs**
-Check network connectivity to `api.nuntly.com` and retry with `--debug` to print the full request/response trace. Corporate proxies typically require `HTTPS_PROXY=...` to be set in the environment.
+Check network connectivity to `api.nuntly.com`. Corporate proxies typically require `HTTPS_PROXY=...` to be set in the environment.
 
 ## License
 

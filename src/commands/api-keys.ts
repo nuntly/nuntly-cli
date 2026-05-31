@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { CreateApiKeyRequest, UpdateApiKeyRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -16,7 +16,7 @@ apiKeysCommand
   .option('--permission <value>', 'The permission type for the api key (required)')
   .option('--domain-ids <value>', 'The domain ids to restrict the api key to (only for sendingAccess) (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -42,7 +42,7 @@ apiKeysCommand
   .command('delete')
   .description('Revoke an API key. Requests authenticating with this key will be rejected immediately.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -51,7 +51,7 @@ apiKeysCommand
   .action(async (id, opts, cmd) => {
     try {
       const { nuntly, globals } = createNuntlyClient(cmd);
-      if (!await confirmDelete('api keys', id, !!globals.yes)) return;
+      if (!await confirmDelete('api key', id, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.apiKeys.delete(id));
       printResult(result, opts);
     } catch (error) {
@@ -65,7 +65,7 @@ apiKeysCommand
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -78,7 +78,7 @@ apiKeysCommand
         const page = await withSpinner('Loading...', () => nuntly.apiKeys.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.apiKeys.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -92,7 +92,7 @@ apiKeysCommand
   .command('retrieve')
   .description('Returns API key metadata. The key value is never returned after creation.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -117,7 +117,7 @@ apiKeysCommand
   .option('--permission <value>', 'The permission type for the api key')
   .option('--domain-ids <value>', 'The domain ids to restrict the api key to (only for sendingAccess) (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
