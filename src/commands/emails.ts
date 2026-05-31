@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { CreateEmailRequest, CreateBulkEmailsRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -15,7 +15,7 @@ bulkSub
   .command('list')
   .description('Returns the emails submitted in a bulk request.')
   .argument('<bulk-id>', 'The bulkId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -38,7 +38,7 @@ bulkSub
   .option('--emails <value>', 'The bulk emails to send. (required)')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -65,7 +65,7 @@ contentSub
   .command('retrieve')
   .description('Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a sent email.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -88,7 +88,7 @@ eventsSub
   .command('list')
   .description('Returns the delivery event history for an email (sent, delivered, opened, bounced, etc.).')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -110,7 +110,7 @@ emailsCommand.addCommand(statsSub);
 statsSub
   .command('retrieve')
   .description('Returns aggregated daily sending statistics for the current period.')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -130,7 +130,7 @@ emailsCommand
   .command('cancel')
   .description('Cancel a scheduled email before delivery. Only emails with `scheduled` status can be cancelled.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -139,7 +139,7 @@ emailsCommand
   .action(async (id, opts, cmd) => {
     try {
       const { nuntly, globals } = createNuntlyClient(cmd);
-      if (!await confirmDelete('emails', id, !!globals.yes)) return;
+      if (!await confirmDelete('email', id, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.emails.cancel(id));
       printResult(result, opts);
     } catch (error) {
@@ -153,7 +153,7 @@ emailsCommand
   .option('--cursor <cursor>', 'Pagination cursor')
   .option('--limit <limit>', 'Max items to return')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -166,7 +166,7 @@ emailsCommand
         const page = await withSpinner('Loading...', () => nuntly.emails.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.emails.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -180,7 +180,7 @@ emailsCommand
   .command('retrieve')
   .description('Returns an email with its current delivery status and metadata.')
   .argument('<id>', 'The id')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -214,7 +214,7 @@ emailsCommand
   .option('--scheduled-at <value>', 'The date at which the email is scheduled to be sent')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')

@@ -65,4 +65,13 @@ program.addCommand(organizationsCommand);
 program.addCommand(threadsCommand);
 program.addCommand(webhooksCommand);
 
+function applyExitOverride(cmd: Command) {
+  cmd.exitOverride((err) => {
+    if (err.code === 'commander.help' || err.code === 'commander.helpDisplayed' || err.code === 'commander.version') process.exit(0);
+    process.exit(2);
+  });
+  cmd.commands.forEach((c) => applyExitOverride(c as Command));
+}
+applyExitOverride(program);
+
 program.parse();

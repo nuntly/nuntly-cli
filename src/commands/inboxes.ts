@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import type { CreateInboxRequest, UpdateInboxRequest, SendMessageRequest } from '@nuntly/sdk';
 import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError } from '../output.js';
+import { printResult, printError, parseFormat } from '../output.js';
 import { withSpinner } from '../spinner.js';
 import { readInput } from '../files.js';
 
@@ -19,7 +19,7 @@ threadsSub
   .option('--limit <limit>', 'Max items to return')
   .option('--labels <value>', 'Comma-separated labels to filter by (AND logic). Threads with spam/trash are excluded by default unless explicitly requested via ?labels=spam or ?labels=trash.')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -32,7 +32,7 @@ threadsSub
         const page = await withSpinner('Loading...', () => nuntly.inboxes.threads.list(inboxId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, labels: opts.labels }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.inboxes.threads.list(inboxId, { cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, labels: opts.labels }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -57,7 +57,7 @@ messagesSub
   .option('--html <value>', 'The HTML body.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -90,7 +90,7 @@ inboxesCommand
   .option('--namespace-id <value>', 'The id of the namespace to assign the inbox to.')
   .option('--agent-id <value>', 'The external AI agent identifier.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -117,7 +117,7 @@ inboxesCommand
   .command('delete')
   .description('Soft-delete an inbox.')
   .argument('<inbox-id>', 'The inboxId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -126,7 +126,7 @@ inboxesCommand
   .action(async (inboxId, opts, cmd) => {
     try {
       const { nuntly, globals } = createNuntlyClient(cmd);
-      if (!await confirmDelete('inboxes', inboxId, !!globals.yes)) return;
+      if (!await confirmDelete('inbox', inboxId, !!globals.yes)) return;
       const result = await withSpinner('Deleting...', () => nuntly.inboxes.delete(inboxId));
       printResult(result, opts);
     } catch (error) {
@@ -141,7 +141,7 @@ inboxesCommand
   .option('--limit <limit>', 'Max items to return')
   .option('--namespace-id <value>', 'Filter by namespace.')
   .option('--all', 'Fetch all pages (auto-paginate)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -154,7 +154,7 @@ inboxesCommand
         const page = await withSpinner('Loading...', () => nuntly.inboxes.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, namespaceId: opts.namespaceId }));
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
-        printResult({ data: all }, opts);
+        printResult({ data: all, nextCursor: null }, opts);
       } else {
         const page = await withSpinner('Loading...', () => nuntly.inboxes.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, namespaceId: opts.namespaceId }));
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
@@ -168,7 +168,7 @@ inboxesCommand
   .command('retrieve')
   .description('Retrieve an inbox.')
   .argument('<inbox-id>', 'The inboxId')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
@@ -190,7 +190,7 @@ inboxesCommand
   .argument('<inbox-id>', 'The inboxId')
   .option('--name <value>', 'The display name of the inbox.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
-  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet')
+  .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
