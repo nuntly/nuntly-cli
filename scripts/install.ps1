@@ -26,12 +26,11 @@ function Stop-WithError {
 }
 
 function Get-Platform {
-    $arch = if ([Environment]::Is64BitOperatingSystem) {
-        if ((Get-CimInstance Win32_Processor).Architecture -eq 12) { 'arm64' } else { 'x64' }
-    } else {
+    if (-not [Environment]::Is64BitOperatingSystem) {
         Stop-WithError "Nuntly CLI requires a 64-bit Windows."
     }
-    return "windows-$arch"
+    # The x64 binary targets baseline x64 (no AVX2), so Windows on ARM can run it under emulation.
+    return 'windows-x64'
 }
 
 function Get-DownloadUrl {
@@ -85,10 +84,17 @@ try {
 Test-Checksum -File $tmp -ExpectedUrl $checksumUrl
 Move-Item -Path $tmp -Destination $exe -Force
 
+try {
+    & $exe --version
+} catch {
+    Stop-WithError "the installed binary does not start: $exe"
+}
+if ($LASTEXITCODE -ne 0) {
+    Stop-WithError "the installed binary does not start (exit code $LASTEXITCODE): $exe"
+}
+
 Write-Info "installed to $exe"
 Add-PathToUserEnv -Path $BinDir
-
-try { & $exe --version } catch { }
 
 Write-Host ""
 Write-Host "Nuntly CLI installed." -ForegroundColor Green
