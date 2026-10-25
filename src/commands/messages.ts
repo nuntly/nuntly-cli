@@ -1,26 +1,28 @@
 import { Command } from '@commander-js/extra-typings';
 import type { ForwardMessageRequest, ReplyMessageRequest, UpdateMessageRequest } from '@nuntly/sdk';
-import { createNuntlyClient, confirmDelete } from '../auth.js';
-import { printResult, printError, parseFormat } from '../output.js';
+import { confirmAction, createNuntlyClient } from '../auth.js';
+import { resolveBody } from '../files.js';
+import { parseFormat, printError, printResult } from '../output.js';
 import { withSpinner } from '../spinner.js';
-import { readInput } from '../files.js';
+import { choiceList } from '../values.js';
 
-export const messagesCommand = new Command('messages')
-  .description('Messages resource.');
+export const messagesCommand = new Command('messages').description('Messages resource.');
 
 const attachmentsSub = new Command('attachments');
 messagesCommand.addCommand(attachmentsSub);
 
 attachmentsSub
   .command('list')
-  .description('List all attachments for a message.')
+  .description(
+    'Lists the attachments of a message with their filename, content type, size, disposition and content id. Download links are not included.',
+  )
   .argument('<message-id>', 'The messageId')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages attachments list mg_4567ghij')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages attachments list imsg_01kabn43yqyxn2bx4ve84mczd3')
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
@@ -33,7 +35,9 @@ attachmentsSub
 
 attachmentsSub
   .command('retrieve')
-  .description('Retrieve an attachment with a presigned download URL.')
+  .description(
+    'Retrieves the metadata of an attachment and a temporary download URL that expires after 15 minutes. Use it to fetch the attachment file itself.',
+  )
   .argument('<message-id>', 'The messageId')
   .argument('<attachment-id>', 'The attachmentId')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
@@ -41,11 +45,16 @@ attachmentsSub
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages attachments retrieve mg_4567ghij mg_4567ghij')
+  .addHelpText(
+    'after',
+    '\nExample:\n  $ nuntly messages attachments retrieve imsg_01kabn43yqyxn2bx4ve84mczd3 iatt_01kabn43yqyxn2bx4ve84mczd3',
+  )
   .action(async (messageId, attachmentId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
-      const result = await withSpinner('Loading...', () => nuntly.messages.attachments.retrieve(messageId, attachmentId));
+      const result = await withSpinner('Loading...', () =>
+        nuntly.messages.attachments.retrieve(messageId, attachmentId),
+      );
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -57,18 +66,29 @@ messagesCommand.addCommand(contentSub);
 
 contentSub
   .command('retrieve')
-  .description('Returns presigned URLs to download the HTML, plain-text, and raw MIME source of a received message.')
+  .description(
+    'Returns temporary download URLs, valid for 2 minutes, for the HTML, plain-text or raw MIME content of a message. Only HTML is returned by default.',
+  )
   .argument('<message-id>', 'The messageId')
+  .option(
+    '--content-format <value>',
+    'Content formats to retrieve. Defaults to `html` only. (comma-separated, choices: html, text, mime)',
+    choiceList(['html', 'text', 'mime']),
+  )
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages content retrieve mg_4567ghij')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages content retrieve imsg_01kabn43yqyxn2bx4ve84mczd3')
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
-      const result = await withSpinner('Loading...', () => nuntly.messages.content.retrieve(messageId));
+      const result = await withSpinner('Loading...', () =>
+        nuntly.messages.content.retrieve(messageId, {
+          format: opts.contentFormat as Array<'html' | 'text' | 'mime'> | undefined,
+        }),
+      );
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -77,9 +97,16 @@ contentSub
 
 messagesCommand
   .command('forward')
-  .description('Forward a message to new recipients.')
+  .description(
+    'Sends a message with a Fwd: subject from the inbox of the original message to one or more new recipients, in a new thread, with an optional text note.',
+  )
   .argument('<message-id>', 'The messageId')
-  .option('--to <value>', 'The recipient addresses to forward to. (repeatable) (required)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
+  .option(
+    '--to <value>',
+    'The recipient addresses to forward to. (repeatable) (required)',
+    (value: string, acc: string[] = []) => acc.concat(value),
+    [] as string[],
+  )
   .option('--text <value>', 'An optional comment to prepend.')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
@@ -88,15 +115,24 @@ messagesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages forward mg_4567ghij --to user@example.com\n  $ cat payload.json | nuntly messages forward mg_4567ghij\n  $ nuntly messages forward mg_4567ghij --file payload.json')
+  .addHelpText(
+    'after',
+    "\nExample:\n  $ nuntly messages forward imsg_01kabn43yqyxn2bx4ve84mczd3 --to brian67@gmail.com --text 'Thank you for signing up! Please verify your email address.'\n  $ cat payload.json | nuntly messages forward imsg_01kabn43yqyxn2bx4ve84mczd3 --file -\n  $ nuntly messages forward imsg_01kabn43yqyxn2bx4ve84mczd3 --file payload.json",
+  )
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
-        to: opts.to as string[],
-        text: opts.text
-      };
-      const result = await withSpinner('Creating...', () => nuntly.messages.forward(messageId, body as ForwardMessageRequest, opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined));
+      const body = resolveBody(opts.file, {
+        to: (opts.to as string[] | undefined)?.length ? (opts.to as string[]) : undefined,
+        text: opts.text,
+      });
+      const result = await withSpinner('Creating...', () =>
+        nuntly.messages.forward(
+          messageId,
+          body as ForwardMessageRequest,
+          opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined,
+        ),
+      );
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -105,9 +141,11 @@ messagesCommand
 
 messagesCommand
   .command('list')
-  .description('List all received messages across inboxes.')
+  .description(
+    'Lists messages newest first, with cursor pagination and optional filters by domain and sender. Each item includes its labels, status and attachment count.',
+  )
   .option('--cursor <cursor>', 'Pagination cursor')
-  .option('--limit <limit>', 'Max items to return')
+  .option('--limit <limit>', 'The maximum number of results to return, from 1 to 30. Defaults to 30.')
   .option('--domain-id <value>', 'Filter by domain.')
   .option('--from <value>', 'Filter by sender address.')
   .option('--all', 'Fetch all pages (auto-paginate)')
@@ -116,17 +154,34 @@ messagesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages list\n  $ nuntly messages list --format json | jq \'.data[].id\'')
+  .addHelpText(
+    'after',
+    "\nExample:\n  $ nuntly messages list\n  $ nuntly messages list --format json | jq '.data[].id'",
+  )
   .action(async (opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
       if (opts.all) {
-        const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
+        const page = await withSpinner('Loading...', () =>
+          nuntly.messages.list({
+            cursor: opts.cursor,
+            limit: opts.limit ? Number(opts.limit) : undefined,
+            domainId: opts.domainId,
+            from: opts.from,
+          }),
+        );
         const all = [] as typeof page.data;
         for await (const item of page) all.push(item);
         printResult({ data: all, nextCursor: null }, opts);
       } else {
-        const page = await withSpinner('Loading...', () => nuntly.messages.list({ cursor: opts.cursor, limit: opts.limit ? Number(opts.limit) : undefined, domainId: opts.domainId, from: opts.from }));
+        const page = await withSpinner('Loading...', () =>
+          nuntly.messages.list({
+            cursor: opts.cursor,
+            limit: opts.limit ? Number(opts.limit) : undefined,
+            domainId: opts.domainId,
+            from: opts.from,
+          }),
+        );
         printResult({ data: page.data, nextCursor: page.nextCursor }, opts);
       }
     } catch (error) {
@@ -136,11 +191,14 @@ messagesCommand
 
 messagesCommand
   .command('reply')
-  .description('Reply to a message. Set replyAll to true to reply to all recipients.')
+  .description(
+    'Replies from the inbox that holds the message, in the same thread. Set replyAll to true to also copy the other recipients. The send is queued.',
+  )
   .argument('<message-id>', 'The messageId')
   .option('--text <value>', 'The plain text body.')
   .option('--html <value>', 'The HTML body.')
-  .option('--reply-all', 'Whether to reply to all recipients. (required)')
+  .option('--reply-all', 'Whether to reply to all recipients.')
+  .option('--no-reply-all', 'Send false for --reply-all')
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--idempotency-key <key>', 'Idempotency-Key header (auto-generated when omitted)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
@@ -148,16 +206,25 @@ messagesCommand
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages reply mg_4567ghij --reply-all\n  $ cat payload.json | nuntly messages reply mg_4567ghij\n  $ nuntly messages reply mg_4567ghij --file payload.json')
+  .addHelpText(
+    'after',
+    "\nExample:\n  $ nuntly messages reply imsg_01kabn43yqyxn2bx4ve84mczd3 --text 'Thank you for signing up! Please verify your email address.' --html '<h1>Welcome</h1><p>Thank you for signing up! Please verify your email address.</p>'\n  $ cat payload.json | nuntly messages reply imsg_01kabn43yqyxn2bx4ve84mczd3 --file -\n  $ nuntly messages reply imsg_01kabn43yqyxn2bx4ve84mczd3 --file payload.json",
+  )
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+      const body = resolveBody(opts.file, {
         text: opts.text,
         html: opts.html,
-        replyAll: opts.replyAll
-      };
-      const result = await withSpinner('Creating...', () => nuntly.messages.reply(messageId, body as ReplyMessageRequest, opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined));
+        replyAll: opts.replyAll,
+      });
+      const result = await withSpinner('Creating...', () =>
+        nuntly.messages.reply(
+          messageId,
+          body as ReplyMessageRequest,
+          opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey as string } : undefined,
+        ),
+      );
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
@@ -166,14 +233,16 @@ messagesCommand
 
 messagesCommand
   .command('retrieve')
-  .description('Retrieve a single message with inbox enrichment.')
+  .description(
+    'Retrieves a received or sent message by id, including its sender, recipients, subject, labels, status, attachment count and raw headers.',
+  )
   .argument('<message-id>', 'The messageId')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages retrieve mg_4567ghij')
+  .addHelpText('after', '\nExample:\n  $ nuntly messages retrieve imsg_01kabn43yqyxn2bx4ve84mczd3')
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
@@ -186,28 +255,44 @@ messagesCommand
 
 messagesCommand
   .command('update')
-  .description('Update message labels. Only available for messages in user-created inboxes.')
+  .description(
+    'Adds or removes labels on a message. Only messages in user-created inboxes accept labels, and a message can hold at most 10 labels.',
+  )
   .argument('<message-id>', 'The messageId')
-  .option('--add-labels <value>', 'Labels to add to the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
-  .option('--remove-labels <value>', 'Labels to remove from the message. (repeatable)', (value: string, acc: string[] = []) => acc.concat(value), [] as string[])
+  .option(
+    '--add-labels <value>',
+    'Labels to add to the message. (repeatable)',
+    (value: string, acc: string[] = []) => acc.concat(value),
+    [] as string[],
+  )
+  .option(
+    '--remove-labels <value>',
+    'Labels to remove from the message. (repeatable)',
+    (value: string, acc: string[] = []) => acc.concat(value),
+    [] as string[],
+  )
   .option('--file <path>', 'Read JSON body from file (use - for stdin)')
   .option('--format <fmt>', 'Output format: json, raw, yaml, csv, markdown, table, quiet', parseFormat)
   .option('-q, --quiet', 'Shorthand for --format quiet')
   .option('--raw', 'Shorthand for --format raw')
   .option('--fields <fields>', 'Comma-separated list of fields to display')
   .option('--no-header', 'Omit column headers in table/csv output')
-  .addHelpText('after', '\nExample:\n  $ nuntly messages update mg_4567ghij --add-labels spam,reviewed\n  $ cat payload.json | nuntly messages update mg_4567ghij\n  $ nuntly messages update mg_4567ghij --file payload.json')
+  .addHelpText(
+    'after',
+    '\nExample:\n  $ nuntly messages update imsg_01kabn43yqyxn2bx4ve84mczd3 --add-labels urgent\n  $ cat payload.json | nuntly messages update imsg_01kabn43yqyxn2bx4ve84mczd3 --file -\n  $ nuntly messages update imsg_01kabn43yqyxn2bx4ve84mczd3 --file payload.json',
+  )
   .action(async (messageId, opts, cmd) => {
     try {
       const { nuntly } = createNuntlyClient(cmd);
-      const body = opts.file ? readInput(opts.file) : !process.stdin.isTTY ? readInput('-') : {
+      const body = resolveBody(opts.file, {
         addLabels: (opts.addLabels as string[] | undefined)?.length ? (opts.addLabels as string[]) : undefined,
-        removeLabels: (opts.removeLabels as string[] | undefined)?.length ? (opts.removeLabels as string[]) : undefined
-      };
-      const result = await withSpinner('Updating...', () => nuntly.messages.update(messageId, body as UpdateMessageRequest));
+        removeLabels: (opts.removeLabels as string[] | undefined)?.length ? (opts.removeLabels as string[]) : undefined,
+      });
+      const result = await withSpinner('Updating...', () =>
+        nuntly.messages.update(messageId, body as UpdateMessageRequest),
+      );
       printResult(result, opts);
     } catch (error) {
       printError(error, opts);
     }
   });
-
